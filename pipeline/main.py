@@ -17,21 +17,36 @@ from depth import estimate_depth
 from heightmap import process_heightmap
 from notifier import send_message, send_photo
 
-BASE_DIR = "C:/CNC-Pipeline"
-INCOMING   = f"{BASE_DIR}/incoming"
-OUTPUT     = f"{BASE_DIR}/output"
-REJECTED   = f"{BASE_DIR}/rejected"
-PROCESSING = f"{BASE_DIR}/processing"
-
-logging.basicConfig(
-    filename=f"{BASE_DIR}/logs/pipeline.log",
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-)
+BASE_DIR   = r"C:\CNC-Pipeline"
+INCOMING   = os.path.join(BASE_DIR, "incoming")
+OUTPUT     = os.path.join(BASE_DIR, "output")
+REJECTED   = os.path.join(BASE_DIR, "rejected")
+PROCESSING = os.path.join(BASE_DIR, "processing")
 
 job_queue: queue.Queue = queue.Queue()
-
 SUPPORTED = (".jpg", ".jpeg", ".png")
+
+
+def _wait_for_file(path, stable_secs=2, timeout=30):
+    """Wait until file size stops changing (Syncthing finishes writing)."""
+    deadline = time.time() + timeout
+    prev_size = -1
+    stable_count = 0
+    while time.time() < deadline:
+        try:
+            size = os.path.getsize(path)
+        except OSError:
+            time.sleep(0.5)
+            continue
+        if size == prev_size:
+            stable_count += 1
+            if stable_count >= stable_secs * 2:
+                return True
+        else:
+            stable_count = 0
+        prev_size = size
+        time.sleep(0.5)
+    return False
 
 
 class PhotoHandler(FileSystemEventHandler):
@@ -40,9 +55,11 @@ class PhotoHandler(FileSystemEventHandler):
             return
         if not event.src_path.lower().endswith(SUPPORTED):
             return
-        time.sleep(2)  # wait for Syncthing to finish writing
-        job_queue.put(event.src_path)
-        logging.info(f"Queued: {event.src_path}")
+        if _wait_for_file(event.src_path):
+            job_queue.put(event.src_path)
+            logging.info(f"Queued: {event.src_path}")
+        else:
+            logging.warning(f"File unstable after 30s, skipped: {event.src_path}")
 
 
 def worker():
@@ -62,14 +79,22 @@ def _process(filepath):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     project_id = f"{timestamp}_{os.path.splitext(filename)[0]}"
 
+    # Move to processing immediately — prevents re-processing if watchdog re-fires
+    processing_path = os.path.join(PROCESSING, filename)
+    try:
+        shutil.move(filepath, processing_path)
+    except Exception as e:
+        logging.error(f"Cannot move to processing: {e}")
+        return
+    filepath = processing_path
+
     logging.info(f"Start: {filename}")
     send_message(f"⏳ Отримано: {filename}")
 
     # 1. Quality check
     ok, issues = check_quality(filepath)
     if not ok:
-        dest = os.path.join(REJECTED, filename)
-        shutil.move(filepath, dest)
+        shutil.move(filepath, os.path.join(REJECTED, filename))
         send_message("❌ Погане фото відхилено:\n" + "\n".join(f"• {i}" for i in issues))
         logging.warning(f"Rejected: {filename} — {issues}")
         return
@@ -95,16 +120,13 @@ def _process(filepath):
     estimate_depth(segmented_jpg, depth_raw)
 
     # 5. Heightmap
-    heightmap = os.path.join(project_dir, "heightmap.png")
-    process_heightmap(depth_raw, heightmap)
+    heightmap_path = os.path.join(project_dir, "heightmap.png")
+    process_heightmap(depth_raw, heightmap_path)
 
-    # 6. Move original from incoming
-    shutil.move(filepath, os.path.join(PROCESSING, filename))
-
-    # 7. Notify
+    # 6. Notify
     logging.info(f"Done: {project_id}")
     send_photo(
-        heightmap,
+        heightmap_path,
         f"✅ Рельєф готовий!\n\n"
         f"📁 output\\{project_id}\\\n"
         f"Файл для ArtCAM: heightmap.png",
@@ -112,6 +134,11 @@ def _process(filepath):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        filename=os.path.join(BASE_DIR, "logs", "pipeline.log"),
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
     logging.info("=== CNC Pipeline started ===")
     send_message("🚀 CNC Pipeline запущено\nОчікую фото в папці Syncthing...")
 

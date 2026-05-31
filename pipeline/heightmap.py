@@ -3,14 +3,17 @@ import numpy as np
 import yaml
 import os
 
-CONFIG_PATH = "C:/CNC-Pipeline/config.yaml"
+_BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(_BASE, "config.yaml")
+
+_DEFAULTS = {"heightmap": {"size": [512, 512], "blur_kernel": 3, "invert": True}}
 
 
 def _load_config():
     if os.path.exists(CONFIG_PATH):
         with open(CONFIG_PATH, encoding="utf-8") as f:
             return yaml.safe_load(f)
-    return {"heightmap": {"size": [512, 512], "blur_kernel": 3, "invert": True}}
+    return _DEFAULTS
 
 
 def process_heightmap(depth_path, output_path):

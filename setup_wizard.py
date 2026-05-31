@@ -106,7 +106,7 @@ def _detect_chat_id(token):
     except Exception as e:
         print(f"\n  ⚠ Не вдалося визначити chat_id: {e}")
 
-    print("  Відкрий: https://api.telegram.org/bot{token}/getUpdates")
+    print(f"  Відкрий: https://api.telegram.org/bot{token}/getUpdates")
     return int(input("  Введи chat_id вручну: ").strip())
 
 

@@ -10,11 +10,23 @@ def _load_model():
     global _model, _transform
     if _model is not None:
         return
-    midas = torch.hub.load("intel-isl/MiDaS", "MiDaS_small", trust_repo=True)
-    midas.eval()
-    transforms = torch.hub.load("intel-isl/MiDaS", "transforms", trust_repo=True)
-    _model = midas
-    _transform = transforms.small_transform
+    try:
+        midas = torch.hub.load(
+            "intel-isl/MiDaS", "MiDaS_small",
+            trust_repo=True, force_reload=False,
+        )
+        midas.eval()
+        transforms = torch.hub.load(
+            "intel-isl/MiDaS", "transforms",
+            trust_repo=True, force_reload=False,
+        )
+        _model = midas
+        _transform = transforms.small_transform
+    except Exception as e:
+        raise RuntimeError(
+            f"MiDaS model failed to load. "
+            f"Check internet connection or re-run install.bat.\nError: {e}"
+        ) from e
 
 
 def estimate_depth(input_path, output_path):
