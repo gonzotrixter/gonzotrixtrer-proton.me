@@ -89,7 +89,7 @@ echo.
 :: ─────────────────────────────────────────
 echo  ── Крок 3 з 6: Завантаження пайплайна ──────
 
-set "ZIP_URL=https://github.com/gonzotrixter/gonzotrixtrer-proton.me/archive/refs/heads/claude/work-in-progress-evkDk.zip"
+set "ZIP_URL=https://github.com/gonzotrixter/gonzotrixtrer-proton.me/archive/refs/heads/main.zip"
 
 powershell -NoProfile -Command ^
   "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile 'C:\CNC-Pipeline\src.zip' -UseBasicParsing" >nul 2>&1
