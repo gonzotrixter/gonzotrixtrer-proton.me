@@ -1,117 +1,104 @@
 @echo off
 chcp 65001 >nul
-title Діагностика ПК
 
-cls
 echo.
-echo  ════════════════════════════════════════
-echo   ДІАГНОСТИКА — зачекайте...
-echo  ════════════════════════════════════════
+echo =========================================
+echo  DIAGNOSTICS - checking system...
+echo =========================================
 echo.
 
 set OK=0
 set FAIL=0
 
-:: Python
-echo  [1] Python...
-python --version >nul 2>&1
+echo [1] Python...
+python --version 2>&1
 if %errorlevel%==0 (
-    echo      OK - Python є
+    echo     RESULT: OK - Python found
     set /a OK+=1
 ) else (
-    echo      НЕ ЗНАЙДЕНО - Python не встановлено
+    echo     RESULT: NOT FOUND - Python not installed
     set /a FAIL+=1
 )
+echo.
 
-:: winget
-echo  [2] winget...
+echo [2] winget...
 winget --version >nul 2>&1
 if %errorlevel%==0 (
-    echo      OK - winget є
+    echo     RESULT: OK - winget found
     set /a OK+=1
 ) else (
-    echo      НЕ ЗНАЙДЕНО - winget відсутній
+    echo     RESULT: NOT FOUND - winget missing
     set /a FAIL+=1
 )
+echo.
 
-:: Internet
-echo  [3] Інтернет...
+echo [3] Internet (ping 8.8.8.8)...
 ping -n 1 8.8.8.8 >nul 2>&1
 if %errorlevel%==0 (
-    echo      OK - інтернет є
+    echo     RESULT: OK - internet works
     set /a OK+=1
 ) else (
-    echo      НЕМАЄ - немає підключення до інтернету
+    echo     RESULT: FAIL - no internet
     set /a FAIL+=1
 )
+echo.
 
-:: GitHub
-echo  [4] GitHub...
+echo [4] GitHub access...
 ping -n 1 github.com >nul 2>&1
 if %errorlevel%==0 (
-    echo      OK - GitHub доступний
+    echo     RESULT: OK - github.com reachable
     set /a OK+=1
 ) else (
-    echo      НЕДОСТУПНИЙ - github.com не відповідає
+    echo     RESULT: FAIL - github.com unreachable
     set /a FAIL+=1
 )
+echo.
 
-:: Admin
-echo  [5] Права адміністратора...
+echo [5] Admin rights...
 net session >nul 2>&1
 if %errorlevel%==0 (
-    echo      OK - є права адміна
+    echo     RESULT: OK - have admin rights
     set /a OK+=1
 ) else (
-    echo      НЕМАЄ - запустіть від імені адміністратора
+    echo     RESULT: NO ADMIN - run as administrator
     set /a FAIL+=1
 )
+echo.
 
-:: CNC-Pipeline installed
-echo  [6] CNC Pipeline встановлено?
+echo [6] CNC Pipeline installed?
 if exist "C:\CNC-Pipeline\pipeline\main.py" (
-    echo      OK - встановлено
+    echo     RESULT: OK - installed
     set /a OK+=1
 ) else (
-    echo      НЕ ВСТАНОВЛЕНО - запустіть install.bat
+    echo     RESULT: NOT INSTALLED - run install.bat first
     set /a FAIL+=1
 )
+echo.
 
-:: Config
-echo  [7] Налаштування Telegram?
+echo [7] Telegram config?
 if exist "C:\CNC-Pipeline\config.yaml" (
-    echo      OK - config.yaml є
+    echo     RESULT: OK - config.yaml found
     set /a OK+=1
 ) else (
-    echo      НЕ НАЛАШТОВАНО - запустіть configure.bat
+    echo     RESULT: NOT CONFIGURED - run configure.bat
     set /a FAIL+=1
 )
-
-:: Disk space
-echo  [8] Місце на диску C:...
-for /f "tokens=3" %%a in ('dir C:\ /-c 2^>nul ^| findstr /i "bytes free"') do set FREE=%%a
-if defined FREE (
-    echo      %FREE% байт вільно
-    set /a OK+=1
-) else (
-    echo      Не вдалося визначити
-)
-
-echo.
-echo  ════════════════════════════════════════
-echo.
-echo   РЕЗУЛЬТАТ:  OK=%OK%   ПРОБЛЕМ=%FAIL%
 echo.
 
+echo [8] Windows version:
+ver
+echo.
+
+echo =========================================
+echo  TOTAL: OK=%OK%   PROBLEMS=%FAIL%
+echo.
 if %FAIL%==0 (
-    echo   СТАТУС: ВСЕ ГОТОВО
+    echo  STATUS: ALL GOOD - ready to use
 ) else (
-    echo   СТАТУС: Є ПРОБЛЕМИ - подивіться вище що НЕ ЗНАЙДЕНО
+    echo  STATUS: PROBLEMS FOUND - see above
 )
-
+echo =========================================
 echo.
-echo  ════════════════════════════════════════
-echo.
-echo  Зробіть скріншот і надішліть Роману.
+echo  Take a screenshot and send to Roman.
 echo.
 pause
