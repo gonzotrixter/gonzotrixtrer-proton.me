@@ -13,9 +13,21 @@ echo.
 
 cd /d C:\CNC-Pipeline\pipeline
 
-:: Run pipeline — output goes to console AND log file
-python main.py 2>&1 | powershell -NoProfile -Command ^
-  "$input | Tee-Object -FilePath 'C:\CNC-Pipeline\logs\pipeline.log' -Append"
+if not exist "main.py" (
+    echo  ПОМИЛКА: main.py не знайдено
+    echo  Запустіть спочатку install.bat
+    pause
+    exit /b 1
+)
+
+if not exist "..\config.yaml" (
+    echo  ПОМИЛКА: config.yaml не знайдено
+    echo  Запустіть configure.bat для налаштування
+    pause
+    exit /b 1
+)
+
+python main.py
 
 echo.
 echo  Pipeline зупинено.

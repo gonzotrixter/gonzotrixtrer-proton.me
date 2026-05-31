@@ -1,6 +1,10 @@
 @echo off
 chcp 65001 >nul
 title Тест install.bat — перевірка кроків
+if "%1"=="" (
+    cmd /k "%~f0" RUNNING
+    exit /b
+)
 
 cls
 echo.
