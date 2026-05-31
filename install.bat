@@ -1,60 +1,61 @@
 @echo off
 chcp 65001 >nul
-title CNC Pipeline — Встановлення
+title CNC Pipeline — Встановлення (не закривати!)
 
 :: ─────────────────────────────────────────
-::  Admin check — перезапуск з правами адміна
+::  Перезапуск з правами адміна якщо потрібно
 :: ─────────────────────────────────────────
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Потрібні права адміністратора. Перезапуск...
     powershell -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
 
+cls
 echo.
-echo  ════════════════════════════════════════
-echo    CNC Pipeline  ^|  Stack 2
-echo    MiDaS AI + Syncthing + Telegram
-echo  ════════════════════════════════════════
+echo  ╔══════════════════════════════════════════╗
+echo  ║   CNC Pipeline — Автоматичне              ║
+echo  ║   встановлення                            ║
+echo  ║                                           ║
+echo  ║   Не закривайте це вікно!                 ║
+echo  ║   Процес займе 15–30 хвилин.              ║
+echo  ╚══════════════════════════════════════════╝
+echo.
+echo  Розпочато: %date% %time%
 echo.
 
 :: ─────────────────────────────────────────
 ::  [1/5] Python
 :: ─────────────────────────────────────────
-echo [1/5] Перевірка Python...
-
+echo  ── Крок 1 з 5: Перевірка Python ────────────
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo       Не знайдено. Встановлення Python 3.11 через winget...
-    winget install Python.Python.3.11 --silent --accept-package-agreements --accept-source-agreements
-    if %errorlevel% neq 0 (
-        echo.
-        echo  ПОМИЛКА: winget недоступний або немає інтернету.
-        echo  Завантаж Python вручну: https://www.python.org/downloads/
-        echo  Потім запусти install.bat ще раз.
-        pause
-        exit /b 1
-    )
-    :: Refresh PATH for current session
+    echo      Встановлення Python 3.11...
+    winget install Python.Python.3.11 --silent --accept-package-agreements --accept-source-agreements >nul 2>&1
     set "PATH=%LOCALAPPDATA%\Programs\Python\Python311;%LOCALAPPDATA%\Programs\Python\Python311\Scripts;%PATH%"
     set "PATH=%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts;%PATH%"
 )
-
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo  ПОМИЛКА: Python все ще не знайдено після встановлення.
-    echo  Перезапусти ПК і спробуй знову.
+    cls
+    echo.
+    echo  ╔══════════════════════════════════════════╗
+    echo  ║   ❌ ПОМИЛКА                              ║
+    echo  ║                                           ║
+    echo  ║   Python не вдалося встановити.           ║
+    echo  ║   Зателефонуйте Роману.                   ║
+    echo  ╚══════════════════════════════════════════╝
+    echo.
     pause
     exit /b 1
 )
-echo       OK
+echo      ✓ Python готовий
+echo.
 
 :: ─────────────────────────────────────────
 ::  [2/5] Папки
 :: ─────────────────────────────────────────
-echo [2/5] Створення C:\CNC-Pipeline\...
-
+echo  ── Крок 2 з 5: Створення папок ─────────────
 for %%d in (
     "C:\CNC-Pipeline"
     "C:\CNC-Pipeline\incoming"
@@ -64,76 +65,102 @@ for %%d in (
     "C:\CNC-Pipeline\logs"
     "C:\CNC-Pipeline\pipeline"
 ) do mkdir %%d 2>nul
-
-echo       OK
+echo      ✓ Папки створено
+echo.
 
 :: ─────────────────────────────────────────
-::  [3/5] Завантаження з GitHub
+::  [3/5] Завантаження файлів з GitHub
 :: ─────────────────────────────────────────
-echo [3/5] Завантаження файлів пайплайна...
+echo  ── Крок 3 з 5: Завантаження пайплайна ──────
 
 set "ZIP_URL=https://github.com/gonzotrixter/gonzotrixtrer-proton.me/archive/refs/heads/claude/work-in-progress-evkDk.zip"
-set "ZIP_PATH=C:\CNC-Pipeline\src.zip"
-set "SRC_DIR=C:\CNC-Pipeline\src"
 
 powershell -NoProfile -Command ^
-  "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_PATH%' -UseBasicParsing"
+  "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile 'C:\CNC-Pipeline\src.zip' -UseBasicParsing" >nul 2>&1
 
-if not exist "%ZIP_PATH%" (
-    echo  ПОМИЛКА: Файл не завантажився. Перевір інтернет.
+if not exist "C:\CNC-Pipeline\src.zip" (
+    cls
+    echo.
+    echo  ╔══════════════════════════════════════════╗
+    echo  ║   ❌ ПОМИЛКА                              ║
+    echo  ║                                           ║
+    echo  ║   Немає інтернету або сервер недоступний. ║
+    echo  ║   Перевірте підключення і спробуйте       ║
+    echo  ║   запустити install.bat ще раз.           ║
+    echo  ║                                           ║
+    echo  ║   Зателефонуйте Роману.                   ║
+    echo  ╚══════════════════════════════════════════╝
+    echo.
     pause
     exit /b 1
 )
 
 powershell -NoProfile -Command ^
-  "Expand-Archive -Path '%ZIP_PATH%' -DestinationPath '%SRC_DIR%' -Force"
+  "Expand-Archive -Path 'C:\CNC-Pipeline\src.zip' -DestinationPath 'C:\CNC-Pipeline\src' -Force" >nul 2>&1
 
-:: Copy files from extracted folder (name depends on GitHub branch naming)
-for /d %%i in ("%SRC_DIR%\*") do (
+for /d %%i in ("C:\CNC-Pipeline\src\*") do (
     if exist "%%i\pipeline" (
-        xcopy "%%i\pipeline\*" "C:\CNC-Pipeline\pipeline\" /E /Y /Q >nul
+        xcopy "%%i\pipeline\*" "C:\CNC-Pipeline\pipeline\" /E /Y /Q >nul 2>&1
     )
-    if exist "%%i\setup_wizard.py"     copy "%%i\setup_wizard.py"     "C:\CNC-Pipeline\" /Y >nul
-    if exist "%%i\config.yaml.template" copy "%%i\config.yaml.template" "C:\CNC-Pipeline\" /Y >nul
-    if exist "%%i\start.bat"           copy "%%i\start.bat"           "C:\CNC-Pipeline\" /Y >nul
+    for %%f in (setup_wizard.py preload_models.py config.yaml.template configure.bat start.bat) do (
+        if exist "%%i\%%f" copy "%%i\%%f" "C:\CNC-Pipeline\" /Y >nul 2>&1
+    )
 )
 
-rmdir /s /q "%SRC_DIR%" 2>nul
-del "%ZIP_PATH%" 2>nul
+rmdir /s /q "C:\CNC-Pipeline\src" 2>nul
+del "C:\CNC-Pipeline\src.zip" 2>nul
 
-echo       OK
+echo      ✓ Файли завантажено
+echo.
 
 :: ─────────────────────────────────────────
 ::  [4/5] pip install
 :: ─────────────────────────────────────────
-echo [4/5] Встановлення пакетів...
-echo.
-echo   Важливо:
-echo   - Загальний час: 5–15 хвилин
-echo   - PyTorch CPU: ~200 MB одноразово
-echo   - MiDaS модель: ~200 MB при першому запуску пайплайна
+echo  ── Крок 4 з 5: Встановлення програм ────────
+echo      (може зайняти 10–20 хвилин, зачекайте)
 echo.
 
-python -m pip install --upgrade pip -q
+python -m pip install --upgrade pip -q --no-warn-script-location
 
 if exist "C:\CNC-Pipeline\pipeline\requirements.txt" (
-    python -m pip install -r "C:\CNC-Pipeline\pipeline\requirements.txt" -q
-) else (
-    echo   ПОПЕРЕДЖЕННЯ: requirements.txt не знайдено.
+    python -m pip install -r "C:\CNC-Pipeline\pipeline\requirements.txt" -q --no-warn-script-location
 )
 
-echo   Встановлення PyTorch CPU...
-python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu -q
+echo      Встановлення PyTorch...
+python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu -q --no-warn-script-location
 
-echo       OK
-
-:: ─────────────────────────────────────────
-::  [5/5] Майстер налаштування
-:: ─────────────────────────────────────────
-echo [5/5] Запуск майстра налаштування Telegram...
+echo      ✓ Програми встановлено
 echo.
 
-cd /d C:\CNC-Pipeline
-python setup_wizard.py
+:: ─────────────────────────────────────────
+::  [5/5] Завантаження AI-моделі MiDaS
+:: ─────────────────────────────────────────
+echo  ── Крок 5 з 5: Завантаження AI-моделі ──────
+echo      (~200 MB, один раз)
+echo.
 
+python "C:\CNC-Pipeline\preload_models.py"
+
+echo.
+echo      ✓ Готово
+echo.
+
+:: ─────────────────────────────────────────
+::  DONE
+:: ─────────────────────────────────────────
+cls
+echo.
+echo  ╔══════════════════════════════════════════╗
+echo  ║                                           ║
+echo  ║   ✅  КОМП'ЮТЕР ГОТОВИЙ!                 ║
+echo  ║                                           ║
+echo  ║   Більше нічого робити не потрібно.       ║
+echo  ║                                           ║
+echo  ║   Зателефонуйте Роману —                  ║
+echo  ║   він налаштує решту коли приїде.         ║
+echo  ║                                           ║
+echo  ╚══════════════════════════════════════════╝
+echo.
+echo  Завершено: %date% %time%
+echo.
 pause
