@@ -1,0 +1,21 @@
+telegram:
+  token: "PASTE_YOUR_BOT_TOKEN_HERE"
+  chat_id: 0
+
+paths:
+  base:       "C:/CNC-Pipeline"
+  incoming:   "C:/CNC-Pipeline/incoming"
+  output:     "C:/CNC-Pipeline/output"
+  rejected:   "C:/CNC-Pipeline/rejected"
+  processing: "C:/CNC-Pipeline/processing"
+  logs:       "C:/CNC-Pipeline/logs"
+
+quality:
+  min_blur_score: 80
+  min_brightness: 30
+  max_brightness: 245
+
+heightmap:
+  size: [512, 512]       # output resolution in pixels
+  blur_kernel: 3          # smoothing (odd number, 1 = off)
+  invert: true            # true = raised surface is white (standard for ArtCAM)
