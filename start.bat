@@ -4,25 +4,25 @@ title CNC Pipeline
 
 cls
 echo.
-echo  ╔══════════════════════════════════════════╗
-echo  ║   CNC Pipeline — запущено                 ║
-echo  ║   Очікую фото у папці incoming...         ║
-echo  ║   Ctrl+C для зупинки                      ║
-echo  ╚══════════════════════════════════════════╝
+echo =========================================
+echo  CNC Pipeline - started
+echo  Waiting for photos in incoming folder...
+echo  Ctrl+C to stop
+echo =========================================
 echo.
 
 cd /d C:\CNC-Pipeline\pipeline
 
 if not exist "main.py" (
-    echo  ПОМИЛКА: main.py не знайдено
-    echo  Запустіть спочатку install.bat
+    echo  ERROR: main.py not found
+    echo  Run install.bat first
     pause
     exit /b 1
 )
 
 if not exist "..\config.yaml" (
-    echo  ПОМИЛКА: config.yaml не знайдено
-    echo  Запустіть configure.bat для налаштування
+    echo  ERROR: config.yaml not found
+    echo  Run configure.bat to set up Telegram
     pause
     exit /b 1
 )
@@ -30,5 +30,5 @@ if not exist "..\config.yaml" (
 python main.py
 
 echo.
-echo  Pipeline зупинено.
+echo  Pipeline stopped.
 pause
